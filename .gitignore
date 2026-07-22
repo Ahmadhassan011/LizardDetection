@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+*.pth
+*.pt
+*.onnx
+
+# Dataset (large files)
+ml/data/
+*.zip
+
+# TFLite models (build artifacts, track separately if needed)
+ml/models/*.tflite
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local issue tracker
+.scratch/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agents related files
+.claude/
+.agents/
+skills-lock.json
+docs/agents/
+
+# Miscellaneous
+_misc

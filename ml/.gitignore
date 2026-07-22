@@ -1,0 +1,25 @@
+# ── Large data and model artifacts ──────────────────────────────────────────
+# These are either downloaded automatically or produced by Kaggle training.
+# Do NOT commit them — they are too large for git and regeneratable.
+data/
+models/
+
+# ── Python environment ───────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+
+# ── Jupyter / IPython ────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── OS / editor noise ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

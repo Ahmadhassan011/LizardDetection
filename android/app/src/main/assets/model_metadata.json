@@ -1,0 +1,19 @@
+{
+  "model_name": "yolov8n_lizard",
+  "input_shape": [
+    1,
+    416,
+    416,
+    3
+  ],
+  "input_dtype": "float32",
+  "classes": [
+    "lizard"
+  ],
+  "nc": 1,
+  "conf_threshold": 0.45,
+  "iou_threshold": 0.45,
+  "img_size": 416,
+  "export_format": "litert_fp32",
+  "notes": "Trained 5 epochs on Open Images V7 lizard class. Export via ultralytics litert (formerly tflite). FP16 not supported by litert format in ultralytics 8.4.x; using FP32."
+}

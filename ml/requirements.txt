@@ -1,0 +1,19 @@
+# ml/ — Python environment requirements
+# Install into a fresh venv:
+#   python -m venv .venv
+#   source .venv/bin/activate
+#   pip install -r requirements.txt
+#
+# NOTE: fiftyone pulls in a large transitive dependency tree (MongoDB, plotly,
+#       scikit-image, etc.).  The versions below are what was confirmed working
+#       on 2026-07-22 with Python 3.12.
+
+# ── Dataset download (scripts/download_dataset.py) ──────────────────────────
+boto3==1.43.52          # S3 unsigned download from s3://open-images-dataset
+botocore==1.43.52       # boto3 dep — pin together to avoid version mismatch
+requests==2.34.2        # HTTP download for annotation CSVs from GCS
+pandas==3.0.3           # CSV filtering / annotation parsing
+tqdm==4.69.0            # progress bars
+
+# ── Dataset management (optional — only needed for FiftyOne visualisation) ──
+fiftyone==1.19.0        # open-images zoo loader & dataset visualiser
