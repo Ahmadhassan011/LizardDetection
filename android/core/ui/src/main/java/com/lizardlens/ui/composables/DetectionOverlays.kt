@@ -13,6 +13,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,6 +22,7 @@ import com.lizardlens.ui.theme.DetectionBackground
 import com.lizardlens.ui.theme.DetectionBox
 import com.lizardlens.ui.theme.DetectionFill
 import com.lizardlens.ui.theme.Error
+import com.lizardlens.ui.theme.Info
 import com.lizardlens.ui.theme.Success
 import com.lizardlens.ui.theme.Warning
 
@@ -73,7 +75,7 @@ fun BoundingBoxOverlay(
 
             drawContext.canvas.nativeCanvas.apply {
                 val paint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.parseColor("#00FF88")
+                    color = DetectionBox.toArgb()
                     textSize = labelTextSize
                     isAntiAlias = true
                 }
@@ -126,7 +128,7 @@ fun FpsCounter(
     ) {
         Text(
             text = "$fps FPS",
-            color = Color(0xFF2196F3),
+            color = Info,
             fontSize = 10.sp,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
@@ -141,7 +143,7 @@ fun AcceleratorIndicator(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = if (isGpu) Success else Color(0xFF2196F3)
+        color = if (isGpu) Success else Info
     ) {
         Text(
             text = if (isGpu) "GPU" else "CPU",

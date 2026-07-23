@@ -51,6 +51,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lizardlens.ui.composables.BoundingBoxOverlay
+import com.lizardlens.ui.theme.DetectionBackground
+import com.lizardlens.ui.theme.DetectionBox
 import com.lizardlens.ui.viewmodel.ImageDetectionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -247,7 +249,7 @@ private fun Overlays(
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0x99000000)
+                    color = DetectionBackground
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
@@ -256,7 +258,7 @@ private fun Overlays(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = Color(0xFF00FF88),
+                            color = DetectionBox,
                             strokeWidth = 2.dp
                         )
                         Text(
@@ -298,7 +300,7 @@ private fun ResultInfoBar(
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         shape = RoundedCornerShape(8.dp),
-        color = Color(0x99000000)
+        color = DetectionBackground
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -307,7 +309,7 @@ private fun ResultInfoBar(
         ) {
             Text(
                 text = if (detectionCount == 1) "1 lizard detected" else "$detectionCount lizards detected",
-                color = Color(0xFF00FF88),
+                color = DetectionBox,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
