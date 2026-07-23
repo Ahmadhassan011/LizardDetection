@@ -17,11 +17,24 @@ ml/models/*.tflite
 
 # Android
 android/.gradle/
+android/.kotlin/
 android/build/
 android/app/build/
 android/local.properties
 *.apk
 *.aab
+
+# Android module builds
+android/core/*/build/
+
+# Android generated resources
+android/app/src/main/res/drawable/
+android/app/src/main/res/mipmap-*/
+android/app/src/main/res/values/ic_launcher_background.xml
+
+# Android test assets
+android/core/inference/src/androidTest/
+android/core/inference/src/test/assets/
 
 # IDE
 .idea/
@@ -44,3 +57,4 @@ docs/agents/
 
 # Miscellaneous
 _misc
+TODO.md
