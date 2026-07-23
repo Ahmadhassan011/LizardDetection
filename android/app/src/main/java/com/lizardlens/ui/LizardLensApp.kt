@@ -32,6 +32,7 @@ import com.lizardlens.ui.screens.HistoryScreen
 import com.lizardlens.ui.screens.ImageScreen
 import com.lizardlens.ui.screens.SettingsScreen
 import com.lizardlens.ui.screens.VideoScreen
+import com.lizardlens.ui.theme.DetectionBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +84,7 @@ fun LizardLensApp() {
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0x99000000),
+                containerColor = DetectionBackground,
                 titleContentColor = Color.White
             )
         )

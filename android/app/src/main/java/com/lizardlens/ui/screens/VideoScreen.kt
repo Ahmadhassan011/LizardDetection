@@ -48,6 +48,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lizardlens.ui.composables.BoundingBoxOverlay
+import com.lizardlens.ui.theme.DetectionBackground
+import com.lizardlens.ui.theme.DetectionBox
 import com.lizardlens.ui.viewmodel.CameraViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -217,7 +219,7 @@ private fun VideoProcessingContent(
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFF00FF88),
+                    color = DetectionBox,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -240,7 +242,7 @@ private fun VideoProcessingContent(
                         Text(
                             text = "$totalDetections lizard${if (totalDetections != 1) "s" else ""} found",
                             fontSize = 12.sp,
-                            color = Color(0xFF00FF88),
+                            color = DetectionBox,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -259,7 +261,7 @@ private fun VideoProcessingContent(
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color(0xFF00FF88),
+                        color = DetectionBox,
                         strokeWidth = 2.dp
                     )
                     Text(
@@ -334,7 +336,7 @@ private fun VideoResultRow(
             Text(
                 text = if (detectionCount == 1) "1 lizard" else "$detectionCount lizards",
                 fontSize = 13.sp,
-                color = if (detectionCount > 0) Color(0xFF00FF88) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                color = if (detectionCount > 0) DetectionBox else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                 fontWeight = if (detectionCount > 0) FontWeight.Medium else FontWeight.Normal
             )
         }
@@ -374,7 +376,7 @@ private fun VideoFrameDetail(
                     .align(Alignment.TopStart)
                     .padding(16.dp),
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0x99000000),
+                color = DetectionBackground,
                 onClick = onBack
             ) {
                 Row(
@@ -401,7 +403,7 @@ private fun VideoFrameDetail(
                     .align(Alignment.BottomCenter)
                     .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0x99000000)
+                color = DetectionBackground
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -417,7 +419,7 @@ private fun VideoFrameDetail(
                     val count = frameResult?.detectionCount ?: 0
                     Text(
                         text = if (count == 1) "1 lizard" else "$count lizards",
-                        color = Color(0xFF00FF88),
+                        color = DetectionBox,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -431,7 +433,7 @@ private fun VideoFrameDetail(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = Color(0xFF00FF88),
+                        color = DetectionBox,
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.height(8.dp))

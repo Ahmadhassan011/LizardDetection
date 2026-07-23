@@ -62,6 +62,7 @@ import com.lizardlens.ui.composables.FpsCounter
 import com.lizardlens.ui.composables.ThermalBanner
 import com.lizardlens.ui.theme.Primary
 import com.lizardlens.ui.theme.DetectionBox
+import com.lizardlens.ui.theme.Disabled
 import com.lizardlens.ui.viewmodel.CameraViewModel
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -271,8 +272,8 @@ private fun DetectButton(
     )
 
     val containerColor = when {
-        isThermalCritical -> Color(0xFF9E9E9E)
-        isDetecting -> Color(0xFF00FF88)
+        isThermalCritical -> Disabled
+        isDetecting -> DetectionBox
         else -> Primary
     }
 
