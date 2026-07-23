@@ -13,7 +13,8 @@ import kotlin.random.Random
 
 class TfliteInferenceEngine private constructor(
     private val interpreter: Interpreter?,
-    private val config: InferenceConfig
+    private val config: InferenceConfig,
+    override val activeDelegate: InferenceConfig.Delegate
 ) : InferenceEngine {
 
     private val isMock = interpreter == null
@@ -105,6 +106,8 @@ class TfliteInferenceEngine private constructor(
             config: InferenceConfig = InferenceConfig()
         ): TfliteInferenceEngine {
             return try {
+                var actualDelegate = InferenceConfig.Delegate.CPU
+
                 val options = Interpreter.Options().apply {
                     setNumThreads(4)
 
@@ -116,6 +119,7 @@ class TfliteInferenceEngine private constructor(
                                 .getConstructor()
                                 .newInstance()
                             addDelegate(gpuDelegate as org.tensorflow.lite.Delegate)
+                            actualDelegate = InferenceConfig.Delegate.GPU
                             AppLogger.i("GPU delegate attached")
                         } catch (e: Exception) {
                             AppLogger.w("GPU delegate unavailable, falling back to CPU: ${e.message}")
@@ -138,10 +142,10 @@ class TfliteInferenceEngine private constructor(
                     }
                 }
 
-                TfliteInferenceEngine(interpreter, config)
+                TfliteInferenceEngine(interpreter, config, actualDelegate)
             } catch (e: Exception) {
                 AppLogger.e(e, "Failed to create inference engine, falling back to mock")
-                TfliteInferenceEngine(null, config)
+                TfliteInferenceEngine(null, config, InferenceConfig.Delegate.CPU)
             }
         }
 
@@ -163,7 +167,7 @@ class TfliteInferenceEngine private constructor(
         }
 
         fun createMock(config: InferenceConfig = InferenceConfig()): TfliteInferenceEngine {
-            return TfliteInferenceEngine(null, config)
+            return TfliteInferenceEngine(null, config, InferenceConfig.Delegate.CPU)
         }
     }
 }

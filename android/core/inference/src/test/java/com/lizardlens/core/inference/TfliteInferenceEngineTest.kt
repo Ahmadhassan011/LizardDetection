@@ -132,4 +132,19 @@ class TfliteInferenceEngineTest {
         assertEquals(416f, bbox.x2, 0.1f)
         assertEquals(416f, bbox.y2, 0.1f)
     }
+
+    @Test
+    fun `mock engine activeDelegate is CPU`() {
+        val engine = TfliteInferenceEngine.createMock()
+        assertEquals(InferenceConfig.Delegate.CPU, engine.activeDelegate)
+        engine.close()
+    }
+
+    @Test
+    fun `mock engine with GPU config still reports CPU as active delegate`() {
+        val config = InferenceConfig(delegate = InferenceConfig.Delegate.GPU)
+        val engine = TfliteInferenceEngine.createMock(config)
+        assertEquals(InferenceConfig.Delegate.CPU, engine.activeDelegate)
+        engine.close()
+    }
 }

@@ -5,16 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lizardlens.core.camera.ThermalLevel
 import com.lizardlens.core.camera.ThermalManager
+import com.lizardlens.core.data.DetectionConfigStore
 import com.lizardlens.core.data.DetectionRepository
 import com.lizardlens.core.logging.AppLogger
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionSource
 import com.lizardlens.core.inference.InferenceConfig
+import com.lizardlens.core.inference.InferenceEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
@@ -35,7 +36,9 @@ data class CameraUiState(
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val repository: DetectionRepository,
-    val thermalManager: ThermalManager
+    val thermalManager: ThermalManager,
+    private val configStore: DetectionConfigStore,
+    private val inferenceEngine: InferenceEngine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CameraUiState())
@@ -55,12 +58,9 @@ class CameraViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch {
-            val config = repository.getCurrentConfig().first()
-            _uiState.value = _uiState.value.copy(
-                isGpuActive = config.delegate == InferenceConfig.Delegate.GPU
-            )
-        }
+        _uiState.value = _uiState.value.copy(
+            isGpuActive = inferenceEngine.activeDelegate == InferenceConfig.Delegate.GPU
+        )
     }
 
     fun toggleDetection() {

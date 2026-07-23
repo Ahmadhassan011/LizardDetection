@@ -4,14 +4,15 @@ import android.graphics.Bitmap
 import com.lizardlens.core.camera.ThermalLevel
 import com.lizardlens.core.camera.ThermalManager
 import com.lizardlens.core.data.DetectionConfig
+import com.lizardlens.core.data.DetectionConfigStore
 import com.lizardlens.core.data.DetectionRepository
 import com.lizardlens.core.inference.InferenceConfig
+import com.lizardlens.core.inference.InferenceEngine
 import com.lizardlens.core.model.DetectionResult
 import com.lizardlens.core.model.DetectionSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -35,7 +36,16 @@ class CameraViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: DetectionRepository
     private lateinit var thermalManager: ThermalManager
+    private lateinit var configStore: DetectionConfigStore
+    private lateinit var inferenceEngine: InferenceEngine
     private lateinit var viewModel: CameraViewModel
+
+    private val defaultConfig = DetectionConfig(
+        confidenceThreshold = 0.45f,
+        iouThreshold = 0.45f,
+        delegate = InferenceConfig.Delegate.CPU,
+        thermalWarningsEnabled = true
+    )
 
     @Before
     fun setup() {
@@ -43,19 +53,15 @@ class CameraViewModelTest {
 
         repository = mock()
         thermalManager = mock()
+        configStore = mock()
+        inferenceEngine = mock()
+        whenever(inferenceEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.CPU)
 
         val thermalFlow = MutableStateFlow(ThermalLevel.NORMAL)
         whenever(thermalManager.thermalLevel).thenReturn(thermalFlow)
+        whenever(configStore.configFlow).thenReturn(MutableStateFlow(defaultConfig))
 
-        val config = DetectionConfig(
-            confidenceThreshold = 0.45f,
-            iouThreshold = 0.45f,
-            delegate = InferenceConfig.Delegate.CPU,
-            thermalWarningsEnabled = true
-        )
-        whenever(repository.getCurrentConfig()).thenReturn(flowOf(config))
-
-        viewModel = CameraViewModel(repository, thermalManager)
+        viewModel = CameraViewModel(repository, thermalManager, configStore, inferenceEngine)
     }
 
     @After
@@ -165,7 +171,7 @@ class CameraViewModelTest {
         val thermalFlow = MutableStateFlow(ThermalLevel.NORMAL)
         whenever(thermalManager.thermalLevel).thenReturn(thermalFlow)
 
-        viewModel = CameraViewModel(repository, thermalManager)
+        viewModel = CameraViewModel(repository, thermalManager, configStore, inferenceEngine)
         advanceUntilIdle()
 
         assertEquals(ThermalLevel.NORMAL, viewModel.uiState.value.thermalLevel)
@@ -177,5 +183,37 @@ class CameraViewModelTest {
         thermalFlow.value = ThermalLevel.SEVERE
         advanceUntilIdle()
         assertEquals(ThermalLevel.SEVERE, viewModel.uiState.value.thermalLevel)
+    }
+
+    @Test
+    fun `isGpuActive reflects engine activeDelegate on init`() = runTest {
+        whenever(inferenceEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.GPU)
+
+        viewModel = CameraViewModel(repository, thermalManager, configStore, inferenceEngine)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isGpuActive)
+    }
+
+    @Test
+    fun `isGpuActive false when engine delegate is CPU`() = runTest {
+        whenever(inferenceEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.CPU)
+
+        viewModel = CameraViewModel(repository, thermalManager, configStore, inferenceEngine)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isGpuActive)
+    }
+
+    @Test
+    fun `isGpuActive reflects engine delegate when config says GPU but engine is CPU`() = runTest {
+        whenever(inferenceEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.CPU)
+        val configFlow = MutableStateFlow(defaultConfig.copy(delegate = InferenceConfig.Delegate.GPU))
+        whenever(configStore.configFlow).thenReturn(configFlow)
+
+        viewModel = CameraViewModel(repository, thermalManager, configStore, inferenceEngine)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isGpuActive)
     }
 }
