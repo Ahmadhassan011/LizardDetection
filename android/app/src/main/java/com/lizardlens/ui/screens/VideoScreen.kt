@@ -48,16 +48,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lizardlens.ui.composables.BoundingBoxOverlay
-import com.lizardlens.ui.viewmodel.CameraViewModel
+import com.lizardlens.ui.viewmodel.VideoDetectionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoScreen(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: CameraViewModel = hiltViewModel()
+    viewModel: VideoDetectionViewModel = hiltViewModel()
 ) {
-    val videoUiState by viewModel.videoUiState.collectAsState()
+    val videoUiState by viewModel.uiState.collectAsState()
 
     val pickVideoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
