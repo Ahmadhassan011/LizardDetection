@@ -7,7 +7,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![YOLOv8](https://img.shields.io/badge/YOLOv8n-TFLite-00D4AA?style=flat-square)](https://docs.ultralytics.com)
-[![CameraX](https://img.shields.io/badge/CameraX-1.4-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/media/camera/camerax)
+[![CameraX](https://img.shields.io/badge/CameraX-1.3.4-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/media/camera/camerax)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 LizardLens is a fully offline Android app that detects lizards in real time using a YOLOv8n model running on-device via TensorFlow Lite. Built for field researchers who need reliable detection without network connectivity.
@@ -76,7 +76,6 @@ The notebook exports `yolov8n_lizard.tflite` (FP32, ~12 MB). Copy it into the An
 ```bash
 kaggle kernels output codecraft01/lizard-detection-training -p /tmp/out
 cp /tmp/out/yolov8n_lizard.tflite android/app/src/main/assets/
-cp /tmp/out/model_metadata.json   android/app/src/main/assets/
 ```
 
 ---
@@ -140,6 +139,8 @@ Open **LizardLens** from the app drawer. Tap the **DETECT** button to start live
 - **Model undertrained** — Current checkpoint is a 5-epoch pipeline test (mAP ~ 0). Set `EPOCHS = 100` and retrain on Kaggle.
 - **FP32 instead of FP16** — Ultralytics 8.4.83+ dropped FP16 from the `litert` exporter. Use `quantize=8` (INT8, ~3 MB) for a smaller model.
 - **GPU delegate unavailable on some devices** — The app silently falls back to CPU inference when GPU is not supported.
+- **Delegate switching is cosmetic** — Changing CPU/GPU in Settings stores the preference but the TFLite interpreter is never recreated. Tracked in `.scratch/architecture-fixes/issues/04-fix-delegate-switching.md`.
+- **God ViewModel** — `CameraViewModel` (493 lines) manages 3 independent concerns. Tracked in `.scratch/architecture-fixes/issues/03-split-viewmodels.md`.
 
 ---
 

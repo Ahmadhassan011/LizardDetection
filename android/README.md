@@ -1,25 +1,25 @@
 # Android App
 
-Offline Lizard Lens — on-device lizard detection using **YOLOv8n** (single class) on **TFLite FP16**.
+Offline Lizard Lens — on-device lizard detection using **YOLOv8n** (single class) on **TFLite FP32**.
 
 ## Stack
 
 - Kotlin 2.0+
 - Jetpack Compose + Material 3
 - CameraX (ImageAnalysis @ 10 FPS)
-- TensorFlow Lite (FP16, XNNPACK default)
+- TensorFlow Lite (FP32, XNNPACK default, optional GPU delegate)
 - Hilt (DI)
 - Room (detection history)
 - Min SDK 26 (Android 8.0) / Target SDK 35
 
 ## Module Structure
 
-- `:app` — Application entry point, Hilt setup, navigation, UI screens
+- `:app` — Application entry point, Hilt setup, navigation, UI screens, ViewModels (`CameraViewModel`, `ImageDetectionViewModel`, `VideoDetectionViewModel`, `SettingsViewModel`, `HistoryViewModel`)
 - `:core:model` — Data classes: `Detection`, `DetectionResult`, `DetectionSource`
-- `:core:inference` — TFLite inference engine, NMS processor, preprocessing
-- `:core:camera` — CameraX integration, thermal listener
-- `:core:data` — Room database, DAO, repository
-- `:core:ui` — Shared composables, theme
+- `:core:inference` — TFLite inference engine (`InferenceEngine` interface, `TfliteInferenceEngine`), NMS processor, preprocessing
+- `:core:camera` — CameraX integration (`CameraXImageAnalyzer`), thermal listener, YUV→Bitmap conversion
+- `:core:data` — Room database (`AppDatabase`), DAO, `DetectionRepository`, `DetectionConfigStore`, Hilt DI (`DataModule`)
+- `:core:ui` — Shared composables (`DetectionOverlays`, `PermissionCard`), Material 3 theme (`Color.kt`, `Theme.kt`)
 
 ## Build
 
@@ -34,3 +34,17 @@ cd android
 ## Navigation
 
 Camera-first layout. Camera fills the screen. Image, Video, History, and Settings open as slide-up overlays from top bar icons.
+
+## Tests
+
+Unit tests live alongside each module:
+
+```bash
+cd android
+./gradlew test
+```
+
+- `:app` — ViewModel tests (`CameraViewModelTest`, `SettingsViewModelTest`, `HistoryViewModelTest`)
+- `:core:inference` — `TfliteInferenceEngineTest`, `NmsProcessorTest`, `PreprocessorTest`
+- `:core:camera` — `ThermalManagerTest`
+- `:core:data` — `DetectionDaoTest`, `DetectionRepositoryTest`, `ConvertersTest`

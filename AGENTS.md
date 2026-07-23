@@ -1,6 +1,6 @@
 # LizardDetection
 
-Offline Lizard Lens — on-device lizard detection using **YOLOv8n** (single class) on **TFLite FP16**, deployed on Android via CameraX.
+Offline Lizard Lens — on-device lizard detection using **YOLOv8n** (single class) on **TFLite FP32**, deployed on Android via CameraX.
 
 ## Project Structure
 
@@ -16,7 +16,7 @@ Offline Lizard Lens — on-device lizard detection using **YOLOv8n** (single cla
 1. Download `Lizard` class from Open Images V7 via FiftyOne → `ml/data/lizard_yolo/`
 2. Upload dataset to Kaggle
 3. Train YOLOv8n on Kaggle GPU via `ml/notebooks/lizard_detection_training.ipynb`
-4. Export → `yolov8n_lizard.tflite` (FP16, 416×416 input)
+4. Export → `yolov8n_lizard.tflite` (FP32, 416×416 input)
 
 ### Android App Modes
 - **Live Camera** — CameraX ImageAnalysis (10 FPS sustained) → real-time bounding boxes (home screen, fills viewport)
@@ -32,6 +32,10 @@ Offline Lizard Lens — on-device lizard detection using **YOLOv8n** (single cla
 - **Thermal:** PowerManager listener — moderate→indicator, severe→drop to 3 FPS, critical→stop camera
 
 ## Agent skills
+
+### Architecture fixes
+
+Active remediation effort. Spec and 7 work-stream tickets live under `.scratch/architecture-fixes/`. See `docs/agents/issue-tracker.md` for tracker conventions.
 
 ### Issue tracker
 

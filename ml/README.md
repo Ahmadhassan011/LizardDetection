@@ -34,7 +34,6 @@ Open `notebooks/lizard_detection_training.ipynb`, set `EPOCHS = 100`, run all.
 ```bash
 kaggle kernels output codecraft01/lizard-detection-training -p /tmp/out
 cp /tmp/out/yolov8n_lizard.tflite android/app/src/main/assets/
-cp /tmp/out/model_metadata.json   android/app/src/main/assets/
 cp /tmp/out/yolov8n_lizard_best.pt ml/models/
 ```
 
