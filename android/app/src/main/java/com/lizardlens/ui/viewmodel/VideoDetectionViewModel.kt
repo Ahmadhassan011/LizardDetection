@@ -8,9 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.lizardlens.core.data.DetectionRepository
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionSource
+import com.lizardlens.ui.di.DefaultDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +45,8 @@ data class VideoDetectionUiState(
 @HiltViewModel
 class VideoDetectionViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repository: DetectionRepository
+    private val repository: DetectionRepository,
+    @DefaultDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VideoDetectionUiState())
@@ -56,7 +58,7 @@ class VideoDetectionViewModel @Inject constructor(
             videoUri = uri
         )
 
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch(ioDispatcher) {
             try {
                 val retriever = android.media.MediaMetadataRetriever()
                 retriever.setDataSource(context, uri)
@@ -100,7 +102,7 @@ class VideoDetectionViewModel @Inject constructor(
         val result = _uiState.value.videoResults.getOrNull(index) ?: return
         val uri = _uiState.value.videoUri ?: return
 
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch(ioDispatcher) {
             try {
                 val bitmap = loadFrameFromVideo(uri, result.timestampMs)
                 _uiState.value = _uiState.value.copy(

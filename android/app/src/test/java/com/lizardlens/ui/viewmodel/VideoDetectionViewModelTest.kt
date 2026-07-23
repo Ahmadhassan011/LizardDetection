@@ -32,7 +32,7 @@ class VideoDetectionViewModelTest {
         Dispatchers.setMain(testDispatcher)
         context = mock()
         repository = mock()
-        viewModel = VideoDetectionViewModel(context, repository)
+        viewModel = VideoDetectionViewModel(context, repository, testDispatcher)
     }
 
     @After
