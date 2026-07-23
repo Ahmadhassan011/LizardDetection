@@ -2,8 +2,6 @@ package com.lizardlens.core.data
 
 import android.content.Context
 import android.graphics.Bitmap
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.lizardlens.core.inference.InferenceEngine
 import com.lizardlens.core.model.BoundingBox
 import com.lizardlens.core.model.Detection
@@ -27,8 +25,6 @@ class DetectionRepository @Inject constructor(
     private val inferenceEngine: InferenceEngine
 ) {
 
-    private val gson: Gson = GsonBuilder().create()
-
     val allDetections: Flow<List<DetectionEntity>> = dao.getAllDetections()
 
     fun getDetectionsBySource(source: DetectionSource): Flow<List<DetectionEntity>> =
@@ -47,7 +43,7 @@ class DetectionRepository @Inject constructor(
             DetectionEntity(
                 timestamp = System.currentTimeMillis(),
                 confidence = detection.confidence,
-                boundingBox = gson.toJson(detection.boundingBox),
+                boundingBox = GsonProvider.gson.toJson(detection.boundingBox),
                 source = source,
                 imageUri = thumbnailUri
             )
@@ -68,7 +64,7 @@ class DetectionRepository @Inject constructor(
         val entity = DetectionEntity(
             timestamp = System.currentTimeMillis(),
             confidence = detection.confidence,
-            boundingBox = gson.toJson(detection.boundingBox),
+            boundingBox = GsonProvider.gson.toJson(detection.boundingBox),
             source = source,
             imageUri = thumbnailUri
         )
@@ -84,7 +80,7 @@ class DetectionRepository @Inject constructor(
             DetectionEntity(
                 timestamp = System.currentTimeMillis(),
                 confidence = detection.confidence,
-                boundingBox = gson.toJson(detection.boundingBox),
+                boundingBox = GsonProvider.gson.toJson(detection.boundingBox),
                 source = source,
                 imageUri = thumbnailUri
             )
@@ -109,7 +105,7 @@ class DetectionRepository @Inject constructor(
 
     suspend fun clearHistory() = dao.deleteAll()
 
-    fun parseBoundingBox(json: String): BoundingBox = gson.fromJson(json, BoundingBox::class.java)
+    fun parseBoundingBox(json: String): BoundingBox = GsonProvider.gson.fromJson(json, BoundingBox::class.java)
 
     fun getCurrentConfig(): Flow<DetectionConfig> = configStore.configFlow
 
