@@ -2,7 +2,7 @@ package com.lizardlens.core.inference
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
+import com.lizardlens.core.logging.AppLogger
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionResult
 import org.tensorflow.lite.Interpreter
@@ -98,7 +98,6 @@ class TfliteInferenceEngine private constructor(
     }
 
     companion object {
-        private const val TAG = "TfliteInferenceEngine"
         private const val MODEL_FILENAME = "yolov8n_lizard.tflite"
 
         fun create(
@@ -117,9 +116,9 @@ class TfliteInferenceEngine private constructor(
                                 .getConstructor()
                                 .newInstance()
                             addDelegate(gpuDelegate as org.tensorflow.lite.Delegate)
-                            Log.i(TAG, "GPU delegate attached")
+                            AppLogger.i("GPU delegate attached")
                         } catch (e: Exception) {
-                            Log.w(TAG, "GPU delegate unavailable, falling back to CPU: ${e.message}")
+                            AppLogger.w("GPU delegate unavailable, falling back to CPU: ${e.message}")
                         }
                     }
                 }
@@ -129,7 +128,7 @@ class TfliteInferenceEngine private constructor(
                 if (interpreter != null) {
                     val inputShape = interpreter.getInputTensor(0).shape()
                     val outputShape = interpreter.getOutputTensor(0).shape()
-                    Log.i(TAG, "Model loaded: input=${inputShape.contentToString()}, output=${outputShape.contentToString()}")
+                    AppLogger.i("Model loaded: input=${inputShape.contentToString()}, output=${outputShape.contentToString()}")
 
                     require(inputShape.size == 4 && inputShape[1] == 3) {
                         "Expected NCHW input [1, 3, H, W], got ${inputShape.contentToString()}"
@@ -141,7 +140,7 @@ class TfliteInferenceEngine private constructor(
 
                 TfliteInferenceEngine(interpreter, config)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create inference engine, falling back to mock: ${e.message}")
+                AppLogger.e(e, "Failed to create inference engine, falling back to mock")
                 TfliteInferenceEngine(null, config)
             }
         }
@@ -158,7 +157,7 @@ class TfliteInferenceEngine private constructor(
                 }
                 Interpreter(modelFile, options)
             } catch (e: Exception) {
-                Log.w(TAG, "Model asset '$MODEL_FILENAME' not found: ${e.message}")
+                AppLogger.w("Model asset '$MODEL_FILENAME' not found: ${e.message}")
                 null
             }
         }

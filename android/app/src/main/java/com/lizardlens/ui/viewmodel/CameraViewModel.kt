@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.lizardlens.core.camera.ThermalLevel
 import com.lizardlens.core.camera.ThermalManager
 import com.lizardlens.core.data.DetectionRepository
+import com.lizardlens.core.logging.AppLogger
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionResult
 import com.lizardlens.core.model.DetectionSource
@@ -93,6 +94,7 @@ class CameraViewModel @Inject constructor(
     private var fpsValue = 0
 
     init {
+        AppLogger.i("CameraViewModel initialised")
         thermalManager.start()
 
         viewModelScope.launch {
@@ -111,6 +113,7 @@ class CameraViewModel @Inject constructor(
 
     fun toggleDetection() {
         val current = _uiState.value.isDetecting
+        AppLogger.i("Detection toggled: ${if (current) "stopping" else "starting"}")
         _uiState.value = _uiState.value.copy(
             isDetecting = !current,
             detections = if (current) emptyList() else _uiState.value.detections
@@ -121,9 +124,11 @@ class CameraViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             isFrontCamera = !_uiState.value.isFrontCamera
         )
+        AppLogger.i("Camera toggled: front=${_uiState.value.isFrontCamera}")
     }
 
     fun onPermissionResult(granted: Boolean) {
+        AppLogger.i("Camera permission: ${if (granted) "granted" else "denied"}")
         _uiState.value = _uiState.value.copy(permissionGranted = granted)
     }
 
@@ -141,7 +146,8 @@ class CameraViewModel @Inject constructor(
                     imageWidth = bitmap.width,
                     imageHeight = bitmap.height
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.e(e, "Camera frame detection failed")
             }
         }
     }
@@ -164,7 +170,9 @@ class CameraViewModel @Inject constructor(
     }
 
     fun onImagePicked(uri: Uri) {
+        AppLogger.i("Image picked: $uri")
         val bitmap = loadBitmapFromUri(uri) ?: run {
+            AppLogger.w("Failed to load bitmap from image URI: $uri")
             _imageUiState.value = _imageUiState.value.copy(error = "Failed to load image")
             return
         }
@@ -186,7 +194,8 @@ class CameraViewModel @Inject constructor(
                     imageWidth = bitmap.width,
                     imageHeight = bitmap.height
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.e(e, "Image detection failed")
                 _imageUiState.value = _imageUiState.value.copy(
                     isLoading = false,
                     error = "Detection failed"
@@ -216,6 +225,7 @@ class CameraViewModel @Inject constructor(
     }
 
     fun onVideoPicked(uri: Uri) {
+        AppLogger.i("Video picked: $uri")
         _videoUiState.value = VideoDetectionUiState(
             isProcessing = true,
             videoUri = uri
@@ -245,6 +255,7 @@ class CameraViewModel @Inject constructor(
                 processVideoFrames(uri, totalFrames, videoWidth, videoHeight)
                 retriever.release()
             } catch (e: Exception) {
+                AppLogger.e(e, "Failed to process video metadata")
                 _videoUiState.value = _videoUiState.value.copy(
                     isProcessing = false,
                     error = "Failed to process video: ${e.message}"
@@ -298,6 +309,7 @@ class CameraViewModel @Inject constructor(
         videoWidth: Int,
         videoHeight: Int
     ) {
+        AppLogger.i("Processing video frames: total=$totalFrames, ${videoWidth}x${videoHeight}")
         val extractor = android.media.MediaExtractor()
         val retriever = android.media.MediaMetadataRetriever()
 
@@ -420,8 +432,10 @@ class CameraViewModel @Inject constructor(
             codec.release()
             imageReader.close()
 
+            AppLogger.i("Video processing complete: ${frameIndex} frames processed")
             _videoUiState.value = _videoUiState.value.copy(isProcessing = false)
         } catch (e: Exception) {
+            AppLogger.e(e, "Video frame processing failed")
             _videoUiState.value = _videoUiState.value.copy(
                 isProcessing = false,
                 error = "Processing failed: ${e.message}"

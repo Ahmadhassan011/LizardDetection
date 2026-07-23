@@ -24,6 +24,7 @@ android {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:logging"))
     implementation("androidx.core:core-ktx:1.13.1")
 
     // TFLite — mock fallback when model file not present

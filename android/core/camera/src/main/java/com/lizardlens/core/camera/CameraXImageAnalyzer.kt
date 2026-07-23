@@ -10,6 +10,7 @@ import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.lizardlens.core.logging.AppLogger
 import java.io.ByteArrayOutputStream
 
 fun interface FrameProcessor {
@@ -30,10 +31,12 @@ class CameraXImageAnalyzer(
             if (!isActive) return
 
             if (thermalManager.shouldStopCamera()) {
+                AppLogger.d("Frame skipped: camera stopped due to critical thermal level")
                 return
             }
 
             if (thermalManager.shouldSkipCurrentFrame()) {
+                AppLogger.d("Frame skipped: thermal throttling")
                 return
             }
 
@@ -49,7 +52,8 @@ class CameraXImageAnalyzer(
                 resized.recycle()
                 bitmap.recycle()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            AppLogger.e(e, "Error processing camera frame")
         } finally {
             imageProxy.close()
         }

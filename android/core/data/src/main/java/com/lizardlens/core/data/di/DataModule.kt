@@ -7,6 +7,7 @@ import com.lizardlens.core.data.DetectionDao
 import com.lizardlens.core.inference.InferenceConfig
 import com.lizardlens.core.inference.InferenceEngine
 import com.lizardlens.core.inference.TfliteInferenceEngine
+import com.lizardlens.core.logging.AppLogger
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,6 +22,7 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        AppLogger.i("Initializing Room database: lizard_lens.db")
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
@@ -42,6 +44,7 @@ object InferenceModule {
     @Provides
     @Singleton
     fun provideInferenceEngine(@ApplicationContext context: Context): InferenceEngine {
+        AppLogger.i("Creating TFLite inference engine")
         return TfliteInferenceEngine.create(context, InferenceConfig())
     }
 }

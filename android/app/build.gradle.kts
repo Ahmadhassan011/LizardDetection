@@ -41,12 +41,14 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:ui"))
+    implementation(project(":core:logging"))
     implementation(project(":core:inference"))
     implementation(project(":core:camera"))
     implementation(project(":core:data"))

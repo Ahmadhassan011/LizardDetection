@@ -35,6 +35,7 @@ android {
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:inference"))
+    implementation(project(":core:logging"))
     implementation("androidx.core:core-ktx:1.13.1")
 
     // Room

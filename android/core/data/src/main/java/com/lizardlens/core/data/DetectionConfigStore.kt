@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.lizardlens.core.inference.InferenceConfig
+import com.lizardlens.core.logging.AppLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -44,18 +45,22 @@ class DetectionConfigStore @Inject constructor(
     }
 
     suspend fun updateConfidenceThreshold(value: Float) {
+        AppLogger.i("Config: confidence threshold updated to $value")
         dataStore.edit { it[CONFIDENCE_THRESHOLD] = value }
     }
 
     suspend fun updateIouThreshold(value: Float) {
+        AppLogger.i("Config: IoU threshold updated to $value")
         dataStore.edit { it[IOU_THRESHOLD] = value }
     }
 
     suspend fun updateDelegate(value: InferenceConfig.Delegate) {
+        AppLogger.i("Config: delegate updated to $value")
         dataStore.edit { it[DELEGATE] = value.name }
     }
 
     suspend fun updateThermalWarningsEnabled(value: Boolean) {
+        AppLogger.i("Config: thermal warnings $value")
         dataStore.edit { it[THERMAL_WARNINGS] = value }
     }
 

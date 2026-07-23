@@ -17,6 +17,7 @@ dependencyResolutionManagement {
 rootProject.name = "LizardLens"
 include(":app")
 include(":core:model")
+include(":core:logging")
 include(":core:inference")
 include(":core:camera")
 include(":core:data")

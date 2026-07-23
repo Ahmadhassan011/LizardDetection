@@ -3,6 +3,7 @@ package com.lizardlens.core.data
 import android.content.Context
 import android.graphics.Bitmap
 import com.lizardlens.core.inference.InferenceEngine
+import com.lizardlens.core.logging.AppLogger
 import com.lizardlens.core.model.BoundingBox
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionResult
@@ -37,6 +38,7 @@ class DetectionRepository @Inject constructor(
     ): DetectionResult = withContext(Dispatchers.Default) {
         val config = configStore.configFlow.first()
         val inferenceConfig = configStore.toInferenceConfig(config)
+        AppLogger.d("Running detection: source=$source, ${bitmap.width}x${bitmap.height}")
         val result = inferenceEngine.detect(bitmap)
 
         val entities = result.detections.map { detection ->
@@ -51,6 +53,7 @@ class DetectionRepository @Inject constructor(
 
         if (entities.isNotEmpty()) {
             dao.insertAll(entities)
+            AppLogger.i("Persisted ${entities.size} detections from $source")
         }
 
         result
@@ -69,6 +72,7 @@ class DetectionRepository @Inject constructor(
             imageUri = thumbnailUri
         )
         dao.insert(entity)
+        AppLogger.d("Persisted single detection: confidence=${detection.confidence}, source=$source")
     }
 
     suspend fun persistResult(
@@ -98,12 +102,19 @@ class DetectionRepository @Inject constructor(
             FileOutputStream(imageFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
             }
+            AppLogger.d("Saved thumbnail: $filename (${imageFile.length()} bytes)")
             imageFile.absolutePath
         }
 
-    suspend fun deleteDetection(id: Long) = dao.deleteById(id)
+    suspend fun deleteDetection(id: Long) {
+        AppLogger.d("Deleting detection id=$id")
+        dao.deleteById(id)
+    }
 
-    suspend fun clearHistory() = dao.deleteAll()
+    suspend fun clearHistory() {
+        AppLogger.i("Clearing all detection history")
+        dao.deleteAll()
+    }
 
     fun parseBoundingBox(json: String): BoundingBox = GsonProvider.gson.fromJson(json, BoundingBox::class.java)
 

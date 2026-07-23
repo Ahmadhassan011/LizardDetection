@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lizardlens.core.data.DetectionEntity
 import com.lizardlens.core.data.DetectionRepository
+import com.lizardlens.core.logging.AppLogger
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionSource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,10 +36,12 @@ class HistoryViewModel @Inject constructor(
         }
 
     fun setFilter(source: DetectionSource?) {
+        AppLogger.d("History filter set to: ${source ?: "ALL"}")
         _selectedFilter.value = source
     }
 
     fun deleteWithUndo(entity: DetectionEntity): DetectionEntity {
+        AppLogger.d("History: delete requested for id=${entity.id}")
         pendingDeletes[entity.id] = entity
         viewModelScope.launch {
             repository.deleteDetection(entity.id)
@@ -48,6 +51,7 @@ class HistoryViewModel @Inject constructor(
 
     fun undoDelete(entity: DetectionEntity) {
         if (pendingDeletes.remove(entity.id) != null) {
+            AppLogger.d("History: undo delete for id=${entity.id}")
             val boundingBox = repository.parseBoundingBox(entity.boundingBox)
             val detection = Detection(
                 boundingBox = boundingBox,
@@ -69,6 +73,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun clearHistory() {
+        AppLogger.i("History: clearing all detections")
         viewModelScope.launch {
             repository.clearHistory()
         }
