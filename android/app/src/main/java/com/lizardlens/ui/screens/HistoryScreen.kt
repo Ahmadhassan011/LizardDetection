@@ -1,11 +1,17 @@
 package com.lizardlens.ui.screens
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -34,15 +40,25 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +89,7 @@ import com.lizardlens.ui.theme.Surface
 import com.lizardlens.ui.theme.SurfaceVariant
 import com.lizardlens.ui.theme.Warning
 import com.lizardlens.ui.viewmodel.HistoryViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -87,59 +104,76 @@ fun HistoryScreen(
     val detections by viewModel.filteredDetections.collectAsStateWithLifecycle(initialValue = emptyList())
     val selectedFilter by viewModel.selectedFilter.collectAsStateWithLifecycle()
     var showClearAllDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Surface)
-    ) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "History",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = OnSurface.copy(alpha = 0.9f)
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = Surface
+    ) { _ ->
+        Column(
+            modifier = modifier.fillMaxSize()
+        ) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "History",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = OnSurface.copy(alpha = 0.9f)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to camera",
+                            tint = OnSurface.copy(alpha = 0.9f)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showClearAllDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Clear all history",
+                            tint = OnSurface.copy(alpha = 0.9f)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Surface.copy(alpha = 0.95f)
                 )
-            },
-            navigationIcon = {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to camera",
-                        tint = OnSurface.copy(alpha = 0.9f)
-                    )
-                }
-            },
-            actions = {
-                IconButton(onClick = { showClearAllDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Clear all history",
-                        tint = OnSurface.copy(alpha = 0.9f)
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Surface.copy(alpha = 0.95f)
             )
-        )
 
-        FilterChips(
-            selectedFilter = selectedFilter,
-            onFilterClick = { viewModel.setFilter(it) }
-        )
-
-        if (detections.isEmpty()) {
-            EmptyHistoryState(filter = selectedFilter)
-        } else {
-            HistoryList(
-                detections = detections,
-                onDelete = { id ->
-                    viewModel.deleteDetection(id)
-                }
+            FilterChips(
+                selectedFilter = selectedFilter,
+                onFilterClick = { viewModel.setFilter(it) }
             )
+
+            if (detections.isEmpty()) {
+                EmptyHistoryState(filter = selectedFilter)
+            } else {
+                HistoryList(
+                    detections = detections,
+                    onSwipeDelete = { entity ->
+                        viewModel.deleteWithUndo(entity)
+                        scope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = "Detection deleted",
+                                actionLabel = "Undo",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.undoDelete(entity)
+                            } else {
+                                viewModel.consumePendingDelete(entity.id)
+                            }
+                        }
+                    }
+                )
+            }
         }
     }
 
@@ -239,19 +273,19 @@ private fun EmptyHistoryState(filter: DetectionSource?) {
 @Composable
 private fun HistoryList(
     detections: List<DetectionEntity>,
-    onDelete: (Long) -> Unit
+    onSwipeDelete: (DetectionEntity) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)
+        contentPadding = PaddingValues(bottom = 16.dp)
     ) {
-        items(detections) { detection ->
-            HistoryItem(
+        items(detections, key = { it.id }) { detection ->
+            SwipeToDeleteItem(
                 detection = detection,
-                onDelete = { onDelete(detection.id) }
+                onSwipeDelete = { onSwipeDelete(detection) }
             )
         }
     }
@@ -259,9 +293,63 @@ private fun HistoryList(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HistoryItem(
+private fun SwipeToDeleteItem(
     detection: DetectionEntity,
-    onDelete: () -> Unit
+    onSwipeDelete: () -> Unit
+) {
+    var isRemoved by remember { mutableStateOf(false) }
+
+    AnimatedVisibility(
+        visible = !isRemoved,
+        exit = shrinkVertically(animationSpec = tween(200)) + fadeOut()
+    ) {
+        val dismissState = rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                if (value == SwipeToDismissBoxValue.StartToEnd) {
+                    isRemoved = true
+                    onSwipeDelete()
+                    true
+                } else {
+                    false
+                }
+            }
+        )
+
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = true,
+            enableDismissFromEndToStart = false,
+            backgroundContent = {
+                SwipeDismissBackground()
+            }
+        ) {
+            HistoryItem(detection = detection)
+        }
+    }
+}
+
+@Composable
+private fun SwipeDismissBackground() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Error, RoundedCornerShape(12.dp))
+            .padding(horizontal = 20.dp),
+        contentAlignment = Alignment.CenterEnd
+    ) {
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = "Delete",
+            tint = Color.White,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryItem(
+    detection: DetectionEntity
 ) {
     val boundingBox = Converters().toBoundingBox(detection.boundingBox)
     val dateFormat = remember { SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()) }
@@ -295,7 +383,6 @@ private fun HistoryItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Thumbnail with bounding box overlay
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -315,7 +402,6 @@ private fun HistoryItem(
                             .fillMaxSize()
                             .clip(RoundedCornerShape(8.dp))
                     )
-                    // Bounding box overlay - using fixed dimensions since AsyncImage doesn't provide intrinsic size
                     Canvas(
                         modifier = Modifier
                             .fillMaxSize()
@@ -340,18 +426,10 @@ private fun HistoryItem(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ConfidenceBadge(confidence = detection.confidence)
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete detection",
-                        tint = Warning,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
         }
     }
@@ -382,7 +460,7 @@ private fun ConfidenceBadge(confidence: Float) {
     val color = when {
         confidence >= 0.7f -> Success
         confidence >= 0.5f -> Warning
-        else -> com.lizardlens.ui.theme.Error
+        else -> Error
     }
 
     Text(
@@ -409,7 +487,7 @@ private fun ClearAllConfirmationDialog(
             Button(
                 onClick = onConfirm,
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = com.lizardlens.ui.theme.Error
+                    containerColor = Error
                 )
             ) {
                 Text(text = "Clear All", color = OnSurface)
