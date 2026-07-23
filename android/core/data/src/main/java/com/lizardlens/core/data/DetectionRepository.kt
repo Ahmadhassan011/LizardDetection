@@ -109,7 +109,7 @@ class DetectionRepository @Inject constructor(
 
     suspend fun clearHistory() = dao.deleteAll()
 
-    fun parseBoundingBox(json: String): BoundingBox = gson.fromJson(json, BoundingBox::class)
+    fun parseBoundingBox(json: String): BoundingBox = gson.fromJson(json, BoundingBox::class.java)
 
     fun getCurrentConfig(): Flow<DetectionConfig> = configStore.configFlow
 

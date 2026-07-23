@@ -203,7 +203,7 @@ private fun CameraPreviewWithAnalysis(
                 val cameraProvider = cameraProviderFuture.get()
 
                 val preview = Preview.Builder().build().also {
-                    it.surfaceProvider = previewView.surfaceProvider
+                    it.setSurfaceProvider(ContextCompat.getMainExecutor(ctx), previewView.surfaceProvider)
                 }
 
                 val imageAnalysis = ImageAnalysis.Builder()

@@ -6,7 +6,7 @@ import android.util.Log
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionResult
 import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
+import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.random.Random
@@ -148,11 +148,15 @@ class TfliteInferenceEngine private constructor(
 
         private fun loadModel(context: Context, options: Interpreter.Options): Interpreter? {
             return try {
-                context.assets.openFd(MODEL_FILENAME).use { fd ->
-                    FileInputStream(fd.fileDescriptor).use { fis ->
-                        Interpreter(fis, options)
+                val modelFile = File(context.cacheDir, MODEL_FILENAME)
+                if (!modelFile.exists()) {
+                    context.assets.open(MODEL_FILENAME).use { input ->
+                        modelFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
                     }
                 }
+                Interpreter(modelFile, options)
             } catch (e: Exception) {
                 Log.w(TAG, "Model asset '$MODEL_FILENAME' not found: ${e.message}")
                 null

@@ -55,6 +55,7 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.09.00")
     implementation(composeBom)
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -76,6 +77,9 @@ dependencies {
 
     // Accompanist Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
+    // Coil (image loading)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Activity
     implementation("androidx.activity:activity-compose:1.9.2")

@@ -1,5 +1,6 @@
 package com.lizardlens.ui.viewmodel
 
+import android.content.Context
 import android.graphics.Bitmap
 import com.lizardlens.core.camera.ThermalLevel
 import com.lizardlens.core.camera.ThermalManager
@@ -12,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -27,12 +29,13 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.`when`
+import org.mockito.kotlin.whenever
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CameraViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private lateinit var context: Context
     private lateinit var repository: DetectionRepository
     private lateinit var thermalManager: ThermalManager
     private lateinit var viewModel: CameraViewModel
@@ -41,11 +44,12 @@ class CameraViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
+        context = mock()
         repository = mock()
         thermalManager = mock()
 
         val thermalFlow = MutableStateFlow(ThermalLevel.NORMAL)
-        `when`(thermalManager.thermalLevel).thenReturn(thermalFlow)
+        whenever(thermalManager.thermalLevel).thenReturn(thermalFlow)
 
         val config = DetectionConfig(
             confidenceThreshold = 0.45f,
@@ -53,11 +57,11 @@ class CameraViewModelTest {
             delegate = InferenceConfig.Delegate.CPU,
             thermalWarningsEnabled = true
         )
-        `when`(repository.getCurrentConfig()).thenReturn(flowOf(config))
-        `when`(repository.detectAndPersist(any<Bitmap>(), any<DetectionSource>(), any()))
+        whenever(repository.getCurrentConfig()).thenReturn(flowOf(config))
+        whenever(runBlocking { repository.detectAndPersist(any<Bitmap>(), any<DetectionSource>(), any()) })
             .thenReturn(DetectionResult(emptyList(), 25L))
 
-        viewModel = CameraViewModel(repository, thermalManager)
+        viewModel = CameraViewModel(context, repository, thermalManager)
     }
 
     @After
@@ -143,8 +147,8 @@ class CameraViewModelTest {
         assertTrue(viewModel.uiState.value.isDetecting)
 
         val bitmap = mock<Bitmap>()
-        `when`(bitmap.width).thenReturn(640)
-        `when`(bitmap.height).thenReturn(480)
+        whenever(bitmap.width).thenReturn(640)
+        whenever(bitmap.height).thenReturn(480)
 
         viewModel.processCameraFrame(bitmap)
         advanceUntilIdle()
@@ -162,9 +166,9 @@ class CameraViewModelTest {
     @Test
     fun `thermal level updates propagate to UI state`() = runTest {
         val thermalFlow = MutableStateFlow(ThermalLevel.NORMAL)
-        `when`(thermalManager.thermalLevel).thenReturn(thermalFlow)
+        whenever(thermalManager.thermalLevel).thenReturn(thermalFlow)
 
-        viewModel = CameraViewModel(repository, thermalManager)
+        viewModel = CameraViewModel(context, repository, thermalManager)
         advanceUntilIdle()
 
         assertEquals(ThermalLevel.NORMAL, viewModel.uiState.value.thermalLevel)
@@ -176,5 +180,66 @@ class CameraViewModelTest {
         thermalFlow.value = ThermalLevel.SEVERE
         advanceUntilIdle()
         assertEquals(ThermalLevel.SEVERE, viewModel.uiState.value.thermalLevel)
+    }
+
+    @Test
+    fun `initial video state has correct defaults`() = runTest {
+        advanceUntilIdle()
+        val state = viewModel.videoUiState.value
+        assertFalse(state.isProcessing)
+        assertFalse(state.isPaused)
+        assertEquals(null, state.videoUri)
+        assertEquals(0, state.totalFrames)
+        assertEquals(0, state.processedFrames)
+        assertTrue(state.videoResults.isEmpty())
+        assertEquals(null, state.selectedFrameIndex)
+        assertEquals(null, state.selectedFrameBitmap)
+        assertEquals(null, state.error)
+    }
+
+    @Test
+    fun `pauseVideoProcessing sets isPaused true`() = runTest {
+        advanceUntilIdle()
+        assertFalse(viewModel.videoUiState.value.isPaused)
+
+        viewModel.pauseVideoProcessing()
+        assertTrue(viewModel.videoUiState.value.isPaused)
+    }
+
+    @Test
+    fun `resumeVideoProcessing sets isPaused false`() = runTest {
+        advanceUntilIdle()
+        viewModel.pauseVideoProcessing()
+        assertTrue(viewModel.videoUiState.value.isPaused)
+
+        viewModel.resumeVideoProcessing()
+        assertFalse(viewModel.videoUiState.value.isPaused)
+    }
+
+    @Test
+    fun `clearVideoDetection resets state to defaults`() = runTest {
+        advanceUntilIdle()
+        viewModel.pauseVideoProcessing()
+        assertTrue(viewModel.videoUiState.value.isPaused)
+
+        viewModel.clearVideoDetection()
+        val state = viewModel.videoUiState.value
+        assertFalse(state.isProcessing)
+        assertFalse(state.isPaused)
+        assertEquals(null, state.videoUri)
+        assertEquals(0, state.totalFrames)
+        assertEquals(0, state.processedFrames)
+        assertTrue(state.videoResults.isEmpty())
+        assertEquals(null, state.selectedFrameIndex)
+        assertEquals(null, state.selectedFrameBitmap)
+        assertEquals(null, state.error)
+    }
+
+    @Test
+    fun `clearSelectedFrame clears selection`() = runTest {
+        advanceUntilIdle()
+        viewModel.clearSelectedFrame()
+        assertEquals(null, viewModel.videoUiState.value.selectedFrameIndex)
+        assertEquals(null, viewModel.videoUiState.value.selectedFrameBitmap)
     }
 }
