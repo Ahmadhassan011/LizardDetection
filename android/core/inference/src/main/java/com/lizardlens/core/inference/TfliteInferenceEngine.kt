@@ -165,6 +165,8 @@ class TfliteInferenceEngine private constructor(
             config: InferenceConfig = InferenceConfig()
         ): TfliteInferenceEngine {
             return try {
+                var actualDelegate = InferenceConfig.Delegate.CPU
+
                 val options = Interpreter.Options().apply {
                     setNumThreads(4)
 
@@ -176,6 +178,7 @@ class TfliteInferenceEngine private constructor(
                                 .getConstructor()
                                 .newInstance()
                             addDelegate(gpuDelegate as org.tensorflow.lite.Delegate)
+                            actualDelegate = InferenceConfig.Delegate.GPU
                             AppLogger.i("GPU delegate attached")
                         } catch (e: Exception) {
                             AppLogger.w("GPU delegate unavailable, falling back to CPU: ${e.message}")
