@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lizardlens.core.camera.YuvConverter
 import com.lizardlens.core.data.DetectionRepository
 import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionSource
@@ -213,7 +214,10 @@ class VideoDetectionViewModel @Inject constructor(
                     if (image != null) {
                         try {
                             val timestampMs = bufferInfo.presentationTimeUs / 1000
-                            val bitmap = yuv420ToBitmap(image, image.width, image.height)
+                            val nv21 = YuvConverter.imageToNv21(image)
+                            val bitmap = nv21?.let {
+                                YuvConverter.nv21ToBitmap(it, image.width, image.height)
+                            }
 
                             if (bitmap != null) {
                                 val thumbnailPath = repository.saveThumbnail(
@@ -279,50 +283,6 @@ class VideoDetectionViewModel @Inject constructor(
             )
             retriever.release()
             bitmap
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun yuv420ToBitmap(image: android.media.Image, width: Int, height: Int): Bitmap? {
-        return try {
-            val yBuffer = image.planes[0].buffer
-            val uBuffer = image.planes[1].buffer
-            val vBuffer = image.planes[2].buffer
-
-            val yRowStride = image.planes[0].rowStride
-            val uvRowStride = image.planes[1].rowStride
-            val uvPixelStride = image.planes[1].pixelStride
-
-            val nv21 = ByteArray(width * height * 3 / 2)
-
-            var pos = 0
-            for (row in 0 until height) {
-                val yOffset = row * yRowStride
-                for (col in 0 until width) {
-                    nv21[pos++] = yBuffer.get(yOffset + col)
-                }
-            }
-
-            val uvHeight = height / 2
-            val uvWidth = width / 2
-            for (row in 0 until uvHeight) {
-                for (col in 0 until uvWidth) {
-                    val uvOffset = row * uvRowStride + col * uvPixelStride
-                    nv21[pos++] = vBuffer.get(uvOffset)
-                    nv21[pos++] = uBuffer.get(uvOffset)
-                }
-            }
-
-            val yuvImage = android.graphics.YuvImage(
-                nv21, android.graphics.ImageFormat.NV21, width, height, null
-            )
-            val out = java.io.ByteArrayOutputStream()
-            yuvImage.compressToJpeg(
-                android.graphics.Rect(0, 0, width, height), 85, out
-            )
-            val bytes = out.toByteArray()
-            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         } catch (_: Exception) {
             null
         }
