@@ -11,6 +11,7 @@ import com.lizardlens.core.model.Detection
 import com.lizardlens.core.model.DetectionResult
 import com.lizardlens.core.model.DetectionSource
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -256,5 +257,94 @@ class DetectionRepositoryTest {
         assertEquals(25f, parsed.y1, 0.001f)
         assertEquals(115f, parsed.x2, 0.001f)
         assertEquals(215f, parsed.y2, 0.001f)
+    }
+
+    @Test
+    fun detectAndPersist_switches_delegate_when_config_changes() = runTest {
+        whenever(mockEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.CPU)
+
+        val gpuConfig = DetectionConfig(
+            confidenceThreshold = 0.45f,
+            iouThreshold = 0.45f,
+            delegate = InferenceConfig.Delegate.GPU,
+            thermalWarningsEnabled = true
+        )
+        whenever(mockConfigStore.configFlow).thenReturn(flowOf(gpuConfig))
+        whenever(mockConfigStore.toInferenceConfig(gpuConfig)).thenReturn(
+            InferenceConfig(delegate = InferenceConfig.Delegate.GPU)
+        )
+
+        val result = DetectionResult(
+            detections = listOf(Detection(BoundingBox(0f, 0f, 50f, 50f), 0.9f, "Lizard")),
+            inferenceTimeMs = 10L
+        )
+        whenever(mockEngine.detect(any<Bitmap>())).thenReturn(result)
+
+        val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+        repository.detectAndPersist(bitmap, DetectionSource.CAMERA)
+
+        org.mockito.kotlin.verify(mockEngine).switchDelegate(InferenceConfig.Delegate.GPU)
+
+        bitmap.recycle()
+    }
+
+    @Test
+    fun detectAndPersist_does_not_switch_delegate_when_already_active() = runTest {
+        whenever(mockEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.CPU)
+
+        val cpuConfig = DetectionConfig(
+            confidenceThreshold = 0.45f,
+            iouThreshold = 0.45f,
+            delegate = InferenceConfig.Delegate.CPU,
+            thermalWarningsEnabled = true
+        )
+        whenever(mockConfigStore.configFlow).thenReturn(flowOf(cpuConfig))
+        whenever(mockConfigStore.toInferenceConfig(cpuConfig)).thenReturn(
+            InferenceConfig(delegate = InferenceConfig.Delegate.CPU)
+        )
+
+        val result = DetectionResult(emptyList(), inferenceTimeMs = 5L)
+        whenever(mockEngine.detect(any<Bitmap>())).thenReturn(result)
+
+        val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+        repository.detectAndPersist(bitmap, DetectionSource.CAMERA)
+
+        org.mockito.kotlin.verify(mockEngine, org.mockito.kotlin.never())
+            .switchDelegate(org.mockito.kotlin.any())
+
+        bitmap.recycle()
+    }
+
+    @Test
+    fun detectAndPersist_switches_delegate_only_once_across_calls() = runTest {
+        whenever(mockEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.CPU)
+
+        val gpuConfig = DetectionConfig(
+            confidenceThreshold = 0.45f,
+            iouThreshold = 0.45f,
+            delegate = InferenceConfig.Delegate.GPU,
+            thermalWarningsEnabled = true
+        )
+        whenever(mockConfigStore.configFlow).thenReturn(flowOf(gpuConfig))
+        whenever(mockConfigStore.toInferenceConfig(gpuConfig)).thenReturn(
+            InferenceConfig(delegate = InferenceConfig.Delegate.GPU)
+        )
+
+        val result = DetectionResult(emptyList(), inferenceTimeMs = 5L)
+        whenever(mockEngine.detect(any<Bitmap>())).thenReturn(result)
+
+        val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+
+        // First call: engine is CPU, config is GPU -> should switch
+        repository.detectAndPersist(bitmap, DetectionSource.CAMERA)
+        org.mockito.kotlin.verify(mockEngine).switchDelegate(InferenceConfig.Delegate.GPU)
+
+        // Second call: engine now reports GPU, config is GPU -> should NOT switch again
+        whenever(mockEngine.activeDelegate).thenReturn(InferenceConfig.Delegate.GPU)
+        repository.detectAndPersist(bitmap, DetectionSource.CAMERA)
+        org.mockito.kotlin.verify(mockEngine, org.mockito.kotlin.times(1))
+            .switchDelegate(InferenceConfig.Delegate.GPU)
+
+        bitmap.recycle()
     }
 }

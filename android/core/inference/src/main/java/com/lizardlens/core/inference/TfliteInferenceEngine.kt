@@ -12,11 +12,15 @@ import java.nio.ByteOrder
 import kotlin.random.Random
 
 class TfliteInferenceEngine private constructor(
-    private val interpreter: Interpreter?,
-    private val config: InferenceConfig
+    private val context: Context?,
+    @Volatile private var interpreter: Interpreter?,
+    @Volatile private var _config: InferenceConfig
 ) : InferenceEngine {
 
     private val isMock = interpreter == null
+
+    override val activeDelegate: InferenceConfig.Delegate
+        get() = _config.delegate
 
     override fun detect(bitmap: Bitmap): DetectionResult {
         return if (isMock) {
@@ -29,21 +33,22 @@ class TfliteInferenceEngine private constructor(
     private fun detectReal(bitmap: Bitmap): DetectionResult {
         val startTime = System.currentTimeMillis()
 
-        val inputTensor = Preprocessor.preprocessNCHW(bitmap, config.inputSize)
+        val inputTensor = Preprocessor.preprocessNCHW(bitmap, _config.inputSize)
 
         val inputBuffer = ByteBuffer.allocateDirect(inputTensor.size * 4).apply {
             order(ByteOrder.nativeOrder())
             inputTensor.forEach { putFloat(it) }
         }
 
-        val outputDetails = interpreter!!.getOutputTensor(0)
+        val currentInterpreter = interpreter!!
+        val outputDetails = currentInterpreter.getOutputTensor(0)
         val outputShape = outputDetails.shape()
         val outputSize = outputShape.fold(1) { acc, i -> acc * i }
         val outputBuffer = ByteBuffer.allocateDirect(outputSize * 4).apply {
             order(ByteOrder.nativeOrder())
         }
 
-        interpreter!!.run(inputBuffer, outputBuffer)
+        currentInterpreter.run(inputBuffer, outputBuffer)
 
         outputBuffer.rewind()
         val rawOutput = FloatArray(outputSize)
@@ -53,8 +58,8 @@ class TfliteInferenceEngine private constructor(
 
         val inferenceTimeMs = System.currentTimeMillis() - startTime
 
-        val decoded = NmsProcessor.decodeOutput(rawOutput, outputShape, config.inputSize)
-        return NmsProcessor.postprocess(decoded, outputShape, config, inferenceTimeMs)
+        val decoded = NmsProcessor.decodeOutput(rawOutput, outputShape, _config.inputSize)
+        return NmsProcessor.postprocess(decoded, outputShape, _config, inferenceTimeMs)
     }
 
     private fun detectMock(bitmap: Bitmap): DetectionResult {
@@ -93,8 +98,63 @@ class TfliteInferenceEngine private constructor(
         )
     }
 
+    override fun switchDelegate(delegate: InferenceConfig.Delegate) {
+        if (_config.delegate == delegate) return
+        if (isMock) {
+            _config = _config.copy(delegate = delegate)
+            AppLogger.i("Mock engine delegate switched to $delegate")
+            return
+        }
+
+        AppLogger.i("Switching delegate from ${_config.delegate} to $delegate")
+        val oldInterpreter = interpreter
+        interpreter = null
+
+        try {
+            val newConfig = _config.copy(delegate = delegate)
+            val options = buildInterpreterOptions(delegate)
+            val newInterpreter = loadModel(context!!, options)
+            interpreter = newInterpreter
+            _config = newConfig
+            AppLogger.i("Delegate switched to $delegate successfully")
+        } catch (e: Exception) {
+            AppLogger.e(e, "Failed to switch delegate to $delegate, falling back to CPU")
+            try {
+                val fallbackOptions = buildInterpreterOptions(InferenceConfig.Delegate.CPU)
+                val fallbackInterpreter = loadModel(context!!, fallbackOptions)
+                interpreter = fallbackInterpreter
+                _config = _config.copy(delegate = InferenceConfig.Delegate.CPU)
+            } catch (e2: Exception) {
+                AppLogger.e(e2, "Failed to create fallback CPU interpreter")
+            }
+        } finally {
+            oldInterpreter?.close()
+        }
+    }
+
     override fun close() {
         interpreter?.close()
+        interpreter = null
+    }
+
+    private fun buildInterpreterOptions(delegate: InferenceConfig.Delegate): Interpreter.Options {
+        return Interpreter.Options().apply {
+            setNumThreads(4)
+
+            if (delegate == InferenceConfig.Delegate.GPU ||
+                delegate == InferenceConfig.Delegate.AUTO
+            ) {
+                try {
+                    val gpuDelegate = Class.forName("org.tensorflow.lite.gpu.GpuDelegate")
+                        .getConstructor()
+                        .newInstance()
+                    addDelegate(gpuDelegate as org.tensorflow.lite.Delegate)
+                    AppLogger.i("GPU delegate attached")
+                } catch (e: Exception) {
+                    AppLogger.w("GPU delegate unavailable, falling back to CPU: ${e.message}")
+                }
+            }
+        }
     }
 
     companion object {
@@ -138,10 +198,10 @@ class TfliteInferenceEngine private constructor(
                     }
                 }
 
-                TfliteInferenceEngine(interpreter, config)
+                TfliteInferenceEngine(context, interpreter, config)
             } catch (e: Exception) {
                 AppLogger.e(e, "Failed to create inference engine, falling back to mock")
-                TfliteInferenceEngine(null, config)
+                TfliteInferenceEngine(null, null, config)
             }
         }
 
@@ -163,7 +223,7 @@ class TfliteInferenceEngine private constructor(
         }
 
         fun createMock(config: InferenceConfig = InferenceConfig()): TfliteInferenceEngine {
-            return TfliteInferenceEngine(null, config)
+            return TfliteInferenceEngine(null, null, config)
         }
     }
 }

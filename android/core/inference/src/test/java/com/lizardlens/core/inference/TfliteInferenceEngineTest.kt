@@ -132,4 +132,62 @@ class TfliteInferenceEngineTest {
         assertEquals(416f, bbox.x2, 0.1f)
         assertEquals(416f, bbox.y2, 0.1f)
     }
+
+    @Test
+    fun `activeDelegate returns CPU for mock engine created with CPU config`() {
+        val config = InferenceConfig(delegate = InferenceConfig.Delegate.CPU)
+        val engine = TfliteInferenceEngine.createMock(config)
+
+        assertEquals(InferenceConfig.Delegate.CPU, engine.activeDelegate)
+        engine.close()
+    }
+
+    @Test
+    fun `activeDelegate returns GPU for mock engine created with GPU config`() {
+        val config = InferenceConfig(delegate = InferenceConfig.Delegate.GPU)
+        val engine = TfliteInferenceEngine.createMock(config)
+
+        assertEquals(InferenceConfig.Delegate.GPU, engine.activeDelegate)
+        engine.close()
+    }
+
+    @Test
+    fun `switchDelegate changes activeDelegate`() {
+        val engine = TfliteInferenceEngine.createMock(
+            InferenceConfig(delegate = InferenceConfig.Delegate.CPU)
+        )
+        assertEquals(InferenceConfig.Delegate.CPU, engine.activeDelegate)
+
+        engine.switchDelegate(InferenceConfig.Delegate.GPU)
+
+        assertEquals(InferenceConfig.Delegate.GPU, engine.activeDelegate)
+        engine.close()
+    }
+
+    @Test
+    fun `switchDelegate to same delegate is no-op`() {
+        val engine = TfliteInferenceEngine.createMock(
+            InferenceConfig(delegate = InferenceConfig.Delegate.CPU)
+        )
+
+        engine.switchDelegate(InferenceConfig.Delegate.CPU)
+
+        assertEquals(InferenceConfig.Delegate.CPU, engine.activeDelegate)
+        engine.close()
+    }
+
+    @Test
+    fun `mock engine still detects after switching delegate`() {
+        val engine = TfliteInferenceEngine.createMock(
+            InferenceConfig(delegate = InferenceConfig.Delegate.CPU)
+        )
+        val bitmap = createTestBitmap()
+
+        engine.switchDelegate(InferenceConfig.Delegate.GPU)
+        val result = engine.detect(bitmap)
+
+        assertTrue(result.inferenceTimeMs >= 0)
+        bitmap.recycle()
+        engine.close()
+    }
 }

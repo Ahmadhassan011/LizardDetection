@@ -178,4 +178,31 @@ class CameraViewModelTest {
         advanceUntilIdle()
         assertEquals(ThermalLevel.SEVERE, viewModel.uiState.value.thermalLevel)
     }
+
+    @Test
+    fun `isGpuActive updates reactively when config delegate changes`() = runTest {
+        val configFlow = MutableStateFlow(
+            DetectionConfig(
+                delegate = InferenceConfig.Delegate.CPU,
+                thermalWarningsEnabled = true
+            )
+        )
+        whenever(repository.getCurrentConfig()).thenReturn(configFlow)
+
+        val thermalFlow = MutableStateFlow(ThermalLevel.NORMAL)
+        whenever(thermalManager.thermalLevel).thenReturn(thermalFlow)
+
+        viewModel = CameraViewModel(repository, thermalManager)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isGpuActive)
+
+        configFlow.value = configFlow.value.copy(delegate = InferenceConfig.Delegate.GPU)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isGpuActive)
+
+        configFlow.value = configFlow.value.copy(delegate = InferenceConfig.Delegate.CPU)
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.isGpuActive)
+    }
 }

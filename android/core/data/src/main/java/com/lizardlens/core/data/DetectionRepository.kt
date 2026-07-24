@@ -38,6 +38,12 @@ class DetectionRepository @Inject constructor(
     ): DetectionResult = withContext(Dispatchers.Default) {
         val config = configStore.configFlow.first()
         val inferenceConfig = configStore.toInferenceConfig(config)
+
+        if (inferenceEngine.activeDelegate != inferenceConfig.delegate) {
+            AppLogger.i("Delegate mismatch: engine=${inferenceEngine.activeDelegate}, config=${inferenceConfig.delegate}. Switching.")
+            inferenceEngine.switchDelegate(inferenceConfig.delegate)
+        }
+
         AppLogger.d("Running detection: source=$source, ${bitmap.width}x${bitmap.height}")
         val result = inferenceEngine.detect(bitmap)
 

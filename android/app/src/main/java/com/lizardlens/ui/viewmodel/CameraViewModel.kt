@@ -14,7 +14,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
@@ -56,10 +55,11 @@ class CameraViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val config = repository.getCurrentConfig().first()
-            _uiState.value = _uiState.value.copy(
-                isGpuActive = config.delegate == InferenceConfig.Delegate.GPU
-            )
+            repository.getCurrentConfig().collect { config ->
+                _uiState.value = _uiState.value.copy(
+                    isGpuActive = config.delegate == InferenceConfig.Delegate.GPU
+                )
+            }
         }
     }
 
